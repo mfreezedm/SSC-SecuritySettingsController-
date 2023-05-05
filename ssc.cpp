@@ -1,6 +1,6 @@
 #include "ssc.h"
 #include <iostream>
-
+#define SID_DEF_SIZE 28
 SecureSettingsController::SecureSettingsController()
 {
 	cmd.clear();
@@ -54,13 +54,13 @@ void SecureSettingsController::execCommand()
 int SecureSettingsController::printUserGroupList()
 {
 	cout << "Printing users/groups list..." << endl;
-	USER_INFO_0* userBuf;
+	USER_INFO_1* userBuf;
 	DWORD entires;
 	DWORD total_entires;
 	DWORD resume_handle = 0;
 	NET_API_STATUS userList = NetUserEnum(
 		NULL,
-		0, 0,
+		1, 0,
 		(BYTE**)&userBuf,
 		4096,
 		&entires,
@@ -69,10 +69,33 @@ int SecureSettingsController::printUserGroupList()
 	);
 	for (unsigned i = 0; i < entires; i++)
 	{
-		string username = string(CW2A(userBuf[i].usri0_name));
-		cout << username << endl;
+		string username = string(CW2A(userBuf[i].usri1_name));
+
+
+		DWORD cbSID = SID_DEF_SIZE;
+		DWORD* SID = (DWORD*)malloc(cbSID);
+		WCHAR* strSID;
+		WCHAR szDomain[1024];
+		DWORD dwDomainSize = 1024;
+		SID_NAME_USE SIDNameUse;
+		if (!LookupAccountName(NULL, userBuf[i].usri1_name, SID, &cbSID, szDomain, &dwDomainSize, &SIDNameUse))
+		{
+			if (cbSID != SID_DEF_SIZE) {
+				SID = (DWORD*)realloc(SID, cbSID);
+				i--;
+				continue;
+			}
+		}
+		LPSTR sidStr;
+		ConvertSidToStringSidA(
+			SID,
+			&sidStr
+		);
+		string usid = (char*)sidStr;
+		cout << "User: " << username << " | ";
+		cout << "SID: " << usid << endl;
+		cout << "Priveleges: " << userBuf[i].usri1_priv << endl;
 	}
-	
 	return 0;
 }
 

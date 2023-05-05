@@ -3,6 +3,7 @@
 #include<Windows.h>
 #include<lmaccess.h>
 #include<atlstr.h>
+#include<sddl.h>
 #pragma comment(lib, "Netapi32.lib")
 using namespace std;
 
